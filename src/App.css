@@ -1,5 +1,49 @@
 .App {
   text-align: center;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+body, html {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  width: 100%;
+  overflow-x: hidden;
+}
+
+body {
+  background-color: #f8f8f8;
+  scroll-padding-top: 60px; /* Reduced height of the navbar */
+  scroll-behavior: smooth;
+  padding-top: 60px;
+}
+
+/* Fix for content being cut off */
+.App > div:not(nav) {
+  flex: 1;
+  overflow-y: auto;
+  padding-top: 30px; /* Add more padding to ensure content is visible */
+}
+
+/* Override any fixed heights that might be limiting content */
+.MuiContainer-root {
+  min-height: auto !important;
+  padding-bottom: 60px;
+  padding-top: 15px !important;
+}
+
+/* Ensure tables can scroll horizontally on small screens */
+.MuiTableContainer-root {
+  overflow-x: auto;
+  max-width: 100%;
+}
+
+@media (max-width: 768px) {
+  .MuiTable-root {
+    table-layout: auto;
+  }
 }
 
 .App-logo {
@@ -34,5 +78,209 @@
   }
   to {
     transform: rotate(360deg);
+  }
+}
+
+/* Add styling for sticky header */
+.MuiAppBar-root {
+  position: fixed !important;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1100;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+  width: 100%;
+  display: flex;
+  align-items: center;
+}
+
+/* Add subtle animation when scrolling */
+.MuiAppBar-root.scrolled {
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  background-color: rgba(255, 255, 255, 0.97) !important;
+}
+
+/* Add responsive styling for the navigation */
+.MuiToolbar-root {
+  flex-wrap: nowrap;
+  position: relative;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between !important;
+  padding: 0 16px !important;
+  height: 100% !important;
+}
+
+/* Logo section - align left */
+.MuiToolbar-root > .MuiBox-root:first-of-type {
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
+  width: auto;
+  margin: 0 !important;
+  padding: 0;
+}
+
+/* Navigation buttons - align right */
+.MuiToolbar-root > .MuiBox-root:last-of-type {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-left: auto;
+}
+
+/* Ensure the toolbar is properly spaced */
+.MuiContainer-root > .MuiToolbar-root {
+  display: flex;
+  justify-content: space-between !important;
+  align-items: center;
+  width: 100%;
+  padding: 0 16px !important;
+}
+
+/* Fix container styles for pages, not navigation */
+.page-content .MuiContainer-root {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-direction: column;
+}
+
+/* Improve button wrapping */
+.MuiBox-root .MuiButton-root {
+  margin: 2px 6px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  padding: 4px 8px;
+  min-width: unset;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Special container for navbar */
+.MuiAppBar-root .MuiContainer-root {
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+  height: 100%;
+}
+
+/* Fix logo alignment specifically */
+.MuiToolbar-root > .MuiBox-root:first-of-type > div {
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
+  width: auto;
+}
+
+/* Ensure all container elements are properly aligned */
+.MuiContainer-root {
+  min-height: auto !important;
+  padding-bottom: 60px;
+  padding-top: 15px !important;
+}
+
+/* Additional spacing fix for the restaurant icon */
+.MuiSvgIcon-root + .MuiTypography-root {
+  display: inline-flex;
+  align-items: center;
+}
+
+@media (max-width: 900px) {
+  .MuiToolbar-root {
+    padding: 8px 16px;
+  }
+  
+  .MuiButton-root {
+    min-width: unset;
+    padding: 6px 8px;
+    font-size: 0.8rem;
+  }
+}
+
+/* Improve header styles when pages have long names */
+.scrolled .MuiToolbar-root {
+  padding-top: 4px;
+  padding-bottom: 4px;
+}
+
+/* When scrolled, adjust the body padding */
+body.scrolled-page {
+  padding-top: 50px;
+}
+
+/* Add specific fix for page content */
+.MuiContainer-root > .MuiBox-root:first-child,
+.MuiContainer-root > .MuiTypography-root:first-child,
+.MuiContainer-root > div:first-child h1,
+.MuiContainer-root > div:first-child h2,
+.MuiContainer-root > div:first-child h3,
+.MuiContainer-root > div:first-child h4 {
+  margin-top: 10px; /* Give breathing room to top headings */
+}
+
+/* Page container class for proper spacing with fixed header */
+.page-container {
+  padding-top: 1rem;
+  margin-top: 0;
+}
+
+/* Make sure headings in all pages have proper spacing */
+h1, h2, h3, h4, h5, h6 {
+  scroll-margin-top: 70px;
+}
+
+/* Add media query for better responsiveness */
+@media (max-width: 768px) {
+  .MuiToolbar-root {
+    justify-content: center !important;
+  }
+}
+
+/* Custom animations for home page */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from { transform: translateY(20px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+@keyframes pulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+  100% { transform: scale(1); }
+}
+
+/* Typography enhancements */
+.MuiTypography-h1 {
+  font-size: clamp(2.5rem, 5vw, 3.5rem) !important;
+  letter-spacing: -0.5px;
+}
+
+.MuiTypography-h3 {
+  font-size: clamp(1.8rem, 3vw, 2.5rem) !important;
+}
+
+/* Better button styling */
+.MuiButton-contained {
+  transition: all 0.3s ease !important;
+}
+
+.MuiButton-contained:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 25px rgba(255, 75, 43, 0.4) !important;
+}
+
+/* Fix parallax background for mobile */
+@media (max-width: 768px) {
+  [style*="background-attachment: fixed"] {
+    background-attachment: scroll !important;
   }
 }
