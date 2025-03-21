@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Container,
   Typography,
@@ -22,12 +22,14 @@ import {
 } from '@mui/material';
 import { styled } from '@mui/material/styles';
 import { motion } from 'framer-motion';
+import { useLocation } from 'react-router-dom';
 import SendIcon from '@mui/icons-material/Send';
 import RestaurantIcon from '@mui/icons-material/Restaurant';
 import RoomServiceIcon from '@mui/icons-material/RoomService';
 import DeliveryDiningIcon from '@mui/icons-material/DeliveryDining';
 import EmojiFoodBeverageIcon from '@mui/icons-material/EmojiFoodBeverage';
 import PeopleIcon from '@mui/icons-material/People';
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 
 const StyledPaper = styled(Paper)(({ theme }) => ({
   padding: theme.spacing(4),
@@ -61,10 +63,14 @@ const RatingItem = styled(Box)(({ theme }) => ({
 }));
 
 const Feedback = () => {
+  const location = useLocation();
+  const fromOrder = location.state?.fromOrder || false;
+  const orderNumber = location.state?.orderNumber || null;
+  
   const [formData, setFormData] = useState({
     name: '',
     email: '',
-    visitDate: '',
+    visitDate: new Date().toISOString().split('T')[0], // Set default to today's date
     visitType: 'dine-in',
     foodQuality: 4,
     serviceQuality: 4,
@@ -74,10 +80,31 @@ const Feedback = () => {
     wouldRecommend: 'yes',
     comments: '',
     visitFrequency: '',
-    dish: ''
+    dish: '',
+    orderNumber: orderNumber || ''
   });
   
   const [success, setSuccess] = useState(false);
+  
+  // If user has local storage data, pre-fill the form
+  useEffect(() => {
+    const userEmail = localStorage.getItem('userEmail');
+    if (userEmail) {
+      setFormData(prev => ({
+        ...prev,
+        email: userEmail
+      }));
+    }
+    
+    // If coming from an order, set the visit type to the most likely one
+    if (fromOrder) {
+      setFormData(prev => ({
+        ...prev,
+        visitType: 'takeout', // Assuming most orders are takeout
+        orderNumber: orderNumber || ''
+      }));
+    }
+  }, [fromOrder, orderNumber]);
   
   const visitFrequencyOptions = [
     'First time',
@@ -127,7 +154,7 @@ const Feedback = () => {
     setFormData({
       name: '',
       email: '',
-      visitDate: '',
+      visitDate: new Date().toISOString().split('T')[0],
       visitType: 'dine-in',
       foodQuality: 4,
       serviceQuality: 4,
@@ -137,7 +164,8 @@ const Feedback = () => {
       wouldRecommend: 'yes',
       comments: '',
       visitFrequency: '',
-      dish: ''
+      dish: '',
+      orderNumber: ''
     });
   };
   
@@ -152,6 +180,30 @@ const Feedback = () => {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
       >
+        {fromOrder && (
+          <Box 
+            component={motion.div}
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3, duration: 0.5 }}
+            sx={{ 
+              textAlign: 'center', 
+              mb: 4, 
+              p: 3, 
+              borderRadius: 2,
+              background: 'linear-gradient(to right, rgba(255, 75, 43, 0.05), rgba(255, 142, 83, 0.05))'
+            }}
+          >
+            <CheckCircleIcon sx={{ color: 'success.main', fontSize: 40, mb: 1 }} />
+            <Typography variant="h5" gutterBottom>
+              Thank You for Your Order!
+            </Typography>
+            <Typography variant="body1" paragraph>
+              Order #{orderNumber} has been successfully placed. We'd love to hear about your experience.
+            </Typography>
+          </Box>
+        )}
+      
         <Typography 
           variant="h3" 
           sx={{ 
@@ -163,12 +215,13 @@ const Feedback = () => {
             textFillColor: 'transparent',
           }}
         >
-          Share Your Experience
+          {fromOrder ? 'How Was Your Order?' : 'Share Your Experience'}
         </Typography>
         
         <Typography variant="body1" sx={{ mb: 4, textAlign: 'center', color: 'text.secondary', maxWidth: '700px', mx: 'auto' }}>
-          We value your feedback! Please take a moment to tell us about your recent experience.
-          Your insights help us improve our services and create better dining experiences.
+          {fromOrder 
+            ? 'Please take a moment to rate your recent order. Your feedback helps us improve our food and service.'
+            : 'We value your feedback! Please take a moment to tell us about your recent experience. Your insights help us improve our services and create better dining experiences.'}
         </Typography>
         
         <StyledPaper>
@@ -207,7 +260,21 @@ const Feedback = () => {
                 />
               </Grid>
               
-              <Grid item xs={12} sm={6}>
+              {fromOrder && (
+                <Grid item xs={12} sm={6}>
+                  <TextField 
+                    fullWidth
+                    label="Order Number"
+                    name="orderNumber"
+                    value={formData.orderNumber}
+                    onChange={handleInputChange}
+                    variant="outlined"
+                    disabled={!!orderNumber}
+                  />
+                </Grid>
+              )}
+              
+              <Grid item xs={12} sm={fromOrder ? 6 : 6}>
                 <TextField 
                   fullWidth
                   label="Visit Date"
@@ -387,7 +454,7 @@ const Feedback = () => {
                   multiline
                   rows={4}
                   variant="outlined"
-                  placeholder="Please share your thoughts, suggestions or concerns..."
+                  placeholder={fromOrder ? "Tell us what you thought about your recent order..." : "Please share your thoughts, suggestions or concerns..."}
                 />
               </Grid>
               

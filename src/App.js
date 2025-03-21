@@ -1,6 +1,9 @@
 import React, { useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, useLocation, Navigate } from 'react-router-dom';
 import { ThemeProvider, createTheme } from '@mui/material';
+import { AuthProvider } from './contexts/AuthContext';
+import ProtectedRoute from './components/ProtectedRoute';
+import UnauthorizedAccess from './components/UnauthorizedAccess';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
 import Home from './pages/Home';
@@ -14,6 +17,11 @@ import Employees from './pages/Employees';
 import Login from './pages/Login';
 import Signup from './pages/Signup';
 import Feedback from './pages/Feedback';
+import OrderPlacement from './pages/OrderPlacement';
+import OrderPlaced from './pages/OrderPlaced';
+import ShippingAddress from './pages/ShippingAddress';
+import Profile from './pages/Profile';
+import LoginPage from './pages/LoginPage';
 import './App.css';
 
 const theme = createTheme({
@@ -24,6 +32,9 @@ const theme = createTheme({
     secondary: {
       main: '#2B2B2B',
     },
+    error: {
+      main: '#f44336',
+    }
   },
   typography: {
     fontFamily: '"Poppins", "Roboto", "Helvetica", "Arial", sans-serif',
@@ -65,6 +76,17 @@ const theme = createTheme({
   },
 });
 
+// Component to handle unauthorized access and redirect
+const UnauthorizedRedirect = () => {
+  const location = useLocation();
+  
+  useEffect(() => {
+    console.log('Unauthorized access attempt to:', location.pathname);
+  }, [location]);
+  
+  return <Navigate to="/unauthorized" replace />;
+};
+
 function App() {
   useEffect(() => {
     const handleScroll = () => {
@@ -83,31 +105,110 @@ function App() {
 
   return (
     <ThemeProvider theme={theme}>
-      <Router>
-        <div className="App" style={{ 
-          display: 'flex', 
-          flexDirection: 'column',
-          minHeight: '100vh'
-        }}>
-          <Navbar />
-          <main style={{ flex: 1 }}>
-            <Routes>
-              <Route path="/" element={<Home />} />
-              <Route path="/menu" element={<Menu />} />
-              <Route path="/reservations" element={<Reservations />} />
-              <Route path="/contact" element={<Contact />} />
-              <Route path="/orders" element={<Orders />} />
-              <Route path="/customers" element={<Customers />} />
-              <Route path="/inventory" element={<Inventory />} />
-              <Route path="/employees" element={<Employees />} />
-              <Route path="/login" element={<Login />} />
-              <Route path="/signup" element={<Signup />} />
-              <Route path="/feedback" element={<Feedback />} />
-            </Routes>
-          </main>
-          <Footer />
-        </div>
-      </Router>
+      <AuthProvider>
+        <Router>
+          <div className="App" style={{ 
+            display: 'flex', 
+            flexDirection: 'column',
+            minHeight: '100vh'
+          }}>
+            <Navbar />
+            <main style={{ flex: 1 }}>
+              <Routes>
+                {/* Public routes */}
+                <Route path="/" element={
+                  <ProtectedRoute>
+                    <Home />
+                  </ProtectedRoute>
+                } />
+                <Route path="/menu" element={
+                  <ProtectedRoute>
+                    <Menu />
+                  </ProtectedRoute>
+                } />
+                <Route path="/contact" element={
+                  <ProtectedRoute>
+                    <Contact />
+                  </ProtectedRoute>
+                } />
+                <Route path="/login" element={
+                  <ProtectedRoute>
+                    <Login />
+                  </ProtectedRoute>
+                } />
+                <Route path="/signup" element={
+                  <ProtectedRoute>
+                    <Signup />
+                  </ProtectedRoute>
+                } />
+                <Route path="/feedback" element={
+                  <ProtectedRoute>
+                    <Feedback />
+                  </ProtectedRoute>
+                } />
+                
+                {/* Customer routes */}
+                <Route path="/reservations" element={
+                  <ProtectedRoute>
+                    <Reservations />
+                  </ProtectedRoute>
+                } />
+                <Route path="/orders" element={
+                  <ProtectedRoute>
+                    <Orders />
+                  </ProtectedRoute>
+                } />
+                <Route path="/order-placement" element={
+                  <ProtectedRoute>
+                    <OrderPlacement />
+                  </ProtectedRoute>
+                } />
+                <Route path="/shipping-address" element={
+                  <ProtectedRoute>
+                    <ShippingAddress />
+                  </ProtectedRoute>
+                } />
+                <Route path="/order-placed" element={
+                  <ProtectedRoute>
+                    <OrderPlaced />
+                  </ProtectedRoute>
+                } />
+                <Route path="/profile" element={
+                  <ProtectedRoute>
+                    <Profile />
+                  </ProtectedRoute>
+                } />
+                
+                {/* Employee/Admin routes */}
+                <Route path="/customers" element={
+                  <ProtectedRoute>
+                    <Customers />
+                  </ProtectedRoute>
+                } />
+                <Route path="/inventory" element={
+                  <ProtectedRoute>
+                    <Inventory />
+                  </ProtectedRoute>
+                } />
+                
+                {/* Admin-only routes */}
+                <Route path="/employees" element={
+                  <ProtectedRoute>
+                    <Employees />
+                  </ProtectedRoute>
+                } />
+                
+                {/* Unauthorized access page */}
+                <Route path="/unauthorized" element={<UnauthorizedAccess />} />
+                
+                {/* Fallback for any unmatched routes */}
+                <Route path="*" element={<UnauthorizedRedirect />} />
+              </Routes>
+            </main>
+            <Footer />
+          </div>
+        </Router>
+      </AuthProvider>
     </ThemeProvider>
   );
 }

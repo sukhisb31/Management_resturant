@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Container, 
   Box, 
@@ -13,7 +13,10 @@ import {
   IconButton,
   Divider,
   Link as MuiLink,
-  Alert
+  Alert,
+  FormControlLabel,
+  Checkbox,
+  Snackbar
 } from '@mui/material';
 import { styled } from '@mui/material/styles';
 import { motion } from 'framer-motion';
@@ -29,6 +32,10 @@ import DiningIcon from '@mui/icons-material/DinnerDining';
 import LocalBarIcon from '@mui/icons-material/LocalBar';
 import RoomServiceIcon from '@mui/icons-material/RoomService';
 import EventSeatIcon from '@mui/icons-material/EventSeat';
+import GoogleIcon from '@mui/icons-material/Google';
+import FacebookIcon from '@mui/icons-material/Facebook';
+import TwitterIcon from '@mui/icons-material/Twitter';
+import { useAuth, USER_ROLES } from '../contexts/AuthContext';
 
 const StyledPaper = styled(Paper)(({ theme }) => ({
   padding: theme.spacing(4),
@@ -49,10 +56,21 @@ const StyledPaper = styled(Paper)(({ theme }) => ({
 
 const Login = () => {
   const navigate = useNavigate();
+  const { login } = useAuth();
   const [tabValue, setTabValue] = useState(0);
   const [showPassword, setShowPassword] = useState(false);
   const [loginError, setLoginError] = useState('');
-  
+  const [credentials, setCredentials] = useState({
+    email: '',
+    password: '',
+    rememberMe: false,
+  });
+  const [snackbar, setSnackbar] = useState({
+    open: false,
+    message: '',
+    severity: 'success'
+  });
+
   // Form states
   const [customerForm, setCustomerForm] = useState({
     email: '',
@@ -63,6 +81,9 @@ const Login = () => {
     employeeId: '',
     password: ''
   });
+
+  // Check for redirect after login
+  const redirectPath = localStorage.getItem('redirectAfterLogin');
 
   const handleTabChange = (event, newValue) => {
     setTabValue(newValue);
@@ -87,14 +108,17 @@ const Login = () => {
 
   const handleCustomerSubmit = (e) => {
     e.preventDefault();
-    // In a real application, you would make an API call to authenticate
-    console.log('Customer login attempt:', customerForm);
-    
-    // Mock validation - in real app, this would be server-side
+    // Use the same authentication logic as the main submit handler
     if (customerForm.email && customerForm.password) {
-      // Mock successful login
-      // navigate('/dashboard'); // Redirect after successful login
-      setLoginError(''); // Clear any errors
+      // Set credentials for the main submit handler
+      setCredentials({
+        email: customerForm.email,
+        password: customerForm.password,
+        rememberMe: false
+      });
+      
+      // Call the main submit handler
+      handleSubmit(e);
     } else {
       setLoginError('Please enter both email and password');
     }
@@ -102,17 +126,138 @@ const Login = () => {
 
   const handleEmployeeSubmit = (e) => {
     e.preventDefault();
-    // In a real application, you would make an API call to authenticate
-    console.log('Employee login attempt:', employeeForm);
     
-    // Mock validation - in real app, this would be server-side
-    if (employeeForm.employeeId && employeeForm.password) {
-      // Mock successful login
-      // navigate('/employee-dashboard'); // Redirect after successful login
-      setLoginError(''); // Clear any errors
-    } else {
+    // Basic validation
+    if (!employeeForm.employeeId || !employeeForm.password) {
       setLoginError('Please enter both employee ID and password');
+      return;
     }
+
+    // Mock employee validation - in real app, this would use an API
+    // Employee IDs starting with 'A' are admins, 'E' are regular employees
+    try {
+      let role = USER_ROLES.EMPLOYEE;
+      
+      // Determine role based on employee ID prefix
+      if (employeeForm.employeeId.startsWith('A')) {
+        role = USER_ROLES.ADMIN;
+      } else if (!employeeForm.employeeId.startsWith('E')) {
+        throw new Error('Invalid employee ID format');
+      }
+      
+      // Call the login method from AuthContext
+      const success = login(employeeForm.employeeId, employeeForm.password, role);
+      
+      if (success) {
+        setSnackbar({
+          open: true,
+          message: `Welcome back! Logged in as ${role}`,
+          severity: 'success'
+        });
+        
+        // Redirect after successful login
+        setTimeout(() => {
+          if (redirectPath) {
+            localStorage.removeItem('redirectAfterLogin');
+            navigate(redirectPath);
+          } else {
+            navigate('/');
+          }
+        }, 1500);
+      }
+    } catch (error) {
+      setLoginError(error.message || 'Failed to log in');
+    }
+  };
+
+  // Handle input changes
+  const handleChange = (e) => {
+    const { name, value, checked } = e.target;
+    const val = name === 'rememberMe' ? checked : value;
+    setCredentials({
+      ...credentials,
+      [name]: val,
+    });
+    
+    // Clear error on field change
+    if (loginError) {
+      setLoginError('');
+    }
+  };
+
+  // Toggle password visibility
+  const togglePasswordVisibility = () => {
+    setShowPassword(!showPassword);
+  };
+
+  // Handle form submission
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    
+    // Basic validation
+    const newErrors = {};
+    if (!credentials.email) {
+      newErrors.email = 'Email is required';
+    } else if (!/\S+@\S+\.\S+/.test(credentials.email)) {
+      newErrors.email = 'Email is invalid';
+    }
+    
+    if (!credentials.password) {
+      newErrors.password = 'Password is required';
+    } else if (credentials.password.length < 6) {
+      newErrors.password = 'Password must be at least 6 characters';
+    }
+    
+    if (Object.keys(newErrors).length > 0) {
+      setLoginError(newErrors.email || newErrors.password);
+      return;
+    }
+    
+    try {
+      // Call the login method from AuthContext
+      const success = login(credentials.email, credentials.password, USER_ROLES.CUSTOMER);
+      
+      if (success) {
+        // Store authentication status and user email
+        localStorage.setItem('isAuthenticated', 'true');
+        localStorage.setItem('userEmail', credentials.email);
+
+        // Check if there's order data to process
+        const orderData = JSON.parse(localStorage.getItem('orderData') || 'null');
+        
+        setSnackbar({
+          open: true,
+          message: orderData ? 'Login successful! Continuing with your order...' : 'Login successful!',
+          severity: 'success'
+        });
+        
+        // Redirect to the stored path or process the order
+        setTimeout(() => {
+          if (orderData) {
+            // Clear stored order data to prevent duplicate orders
+            localStorage.removeItem('orderData');
+            
+            // Navigate to shipping address with the order information
+            navigate('/shipping-address', { 
+              state: { 
+                orderData: orderData
+              } 
+            });
+          } else if (redirectPath) {
+            localStorage.removeItem('redirectAfterLogin');
+            navigate(redirectPath, { state: { justLoggedIn: true } });
+          } else {
+            navigate('/');
+          }
+        }, 1500);
+      }
+    } catch (error) {
+      setLoginError(error.message || 'Failed to log in');
+    }
+  };
+
+  const handleCloseSnackbar = () => {
+    setSnackbar({ ...snackbar, open: false });
   };
 
   return (
@@ -458,6 +603,17 @@ const Login = () => {
           </Grid>
         </Grid>
       </motion.div>
+      
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={4000}
+        onClose={handleCloseSnackbar}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      >
+        <Alert onClose={handleCloseSnackbar} severity={snackbar.severity} sx={{ width: '100%' }}>
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
     </Container>
   );
 };

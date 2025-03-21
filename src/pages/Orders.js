@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   Container,
@@ -23,11 +23,20 @@ import {
   Grid,
   Card,
   CardContent,
-  Chip
+  Chip,
+  Divider,
+  FormControl,
+  InputLabel,
+  Select,
+  Badge
 } from '@mui/material';
-import { Edit as EditIcon, Delete as DeleteIcon, Add as AddIcon } from '@mui/icons-material';
+import { Edit as EditIcon, Delete as DeleteIcon, Add as AddIcon, ShoppingCart as ShoppingCartIcon } from '@mui/icons-material';
 import { motion } from 'framer-motion';
 import styled from 'styled-components';
+import { useNavigate } from 'react-router-dom';
+import RemoveIcon from '@mui/icons-material/Remove';
+import PaymentIcon from '@mui/icons-material/Payment';
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 
 const StyledCard = styled(motion(Card))`
   height: 100%;
@@ -40,7 +49,13 @@ const AnimatedContainer = styled(motion.div)`
   width: 100%;
 `;
 
+// Check if user is authenticated
+const isAuthenticated = () => {
+  return localStorage.getItem('isAuthenticated') === 'true';
+};
+
 const Orders = () => {
+  const navigate = useNavigate();
   const [orders, setOrders] = useState([
     {
       id: 1,
@@ -95,6 +110,27 @@ const Orders = () => {
 
   const statuses = ['Pending', 'In Progress', 'Completed', 'Cancelled'];
   const paymentMethods = ['Credit Card', 'Cash', 'Mobile Payment'];
+
+  useEffect(() => {
+    // Check if user is authenticated when component mounts
+    if (!isAuthenticated()) {
+      // Store the redirect path
+      localStorage.setItem('redirectAfterLogin', '/orders');
+      // Show message and redirect to login
+      setSnackbar({
+        open: true,
+        message: 'Please login to place an order',
+        severity: 'info',
+      });
+      
+      // Redirect after a short delay so user can read the message
+      const timer = setTimeout(() => {
+        navigate('/login');
+      }, 2000);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [navigate]);
 
   const handleOpenDialog = (order = null) => {
     if (order) {
