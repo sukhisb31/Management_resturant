@@ -1,8 +1,9 @@
 import React, { useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route, useLocation, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, useLocation, Navigate, useNavigate } from 'react-router-dom';
 import { ThemeProvider, createTheme } from '@mui/material';
-import { AuthProvider } from './contexts/AuthContext';
-import ProtectedRoute from './components/ProtectedRoute';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
+// Remove this import since you're defining it locally
+// import ProtectedRoute from './components/ProtectedRoute';
 import UnauthorizedAccess from './components/UnauthorizedAccess';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
@@ -22,6 +23,9 @@ import OrderPlaced from './pages/OrderPlaced';
 import ShippingAddress from './pages/ShippingAddress';
 import Profile from './pages/Profile';
 import LoginPage from './pages/LoginPage';
+import EmployerDashboard from './pages/EmployerDashboard';
+import ManageEmployerIds from './pages/ManageEmployerIds';
+import SuperAdmin from './pages/SuperAdmin';
 import './App.css';
 
 const theme = createTheme({
@@ -85,6 +89,39 @@ const UnauthorizedRedirect = () => {
   }, [location]);
   
   return <Navigate to="/unauthorized" replace />;
+};
+
+// Keep your local definition of ProtectedRoute
+const ProtectedRoute = ({ children }) => {
+  const { isAuthenticated, hasPermission } = useAuth();
+  const location = useLocation();
+  const navigate = useNavigate();
+  
+  useEffect(() => {
+    // Define public routes that don't require authentication
+    const publicRoutes = ['/login', '/signup', '/menu', '/contact', '/', '/feedback'];
+    const isPublicRoute = publicRoutes.includes(location.pathname);
+    
+    // Only redirect to login if not authenticated AND not on a public route
+    if (!isAuthenticated && !isPublicRoute) {
+      // Store the attempted path for redirection after login
+      localStorage.setItem('redirectPath', location.pathname);
+      navigate('/login');
+    }
+  }, [isAuthenticated, location.pathname, navigate]);
+  
+  // Check if user has permission to access the route only if authentication is required
+  const publicRoutes = ['/login', '/signup', '/menu', '/contact', '/', '/feedback'];
+  const isPublicRoute = publicRoutes.includes(location.pathname);
+  
+  if (!isPublicRoute && isAuthenticated) {
+    const hasAccess = hasPermission(location.pathname);
+    if (!hasAccess) {
+      return <Navigate to="/" replace />;
+    }
+  }
+  
+  return children;
 };
 
 function App() {
@@ -190,11 +227,30 @@ function App() {
                     <Inventory />
                   </ProtectedRoute>
                 } />
+                <Route path="/employer-dashboard" element={
+                  <ProtectedRoute>
+                    <EmployerDashboard />
+                  </ProtectedRoute>
+                } />
                 
                 {/* Admin-only routes */}
                 <Route path="/employees" element={
                   <ProtectedRoute>
                     <Employees />
+                  </ProtectedRoute>
+                } />
+                
+                {/* Admin Routes */}
+                <Route path="/admin/manage-employer-ids" element={
+                  <ProtectedRoute>
+                    <ManageEmployerIds />
+                  </ProtectedRoute>
+                } />
+                
+                {/* Super Admin Routes */}
+                <Route path="/super-admin" element={
+                  <ProtectedRoute>
+                    <SuperAdmin />
                   </ProtectedRoute>
                 } />
                 

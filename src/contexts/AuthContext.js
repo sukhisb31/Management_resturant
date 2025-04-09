@@ -3,26 +3,34 @@ import React, { createContext, useState, useContext, useEffect } from 'react';
 // Define user roles and their permissions
 export const USER_ROLES = {
   GUEST: 'guest',
-  CUSTOMER: 'customer',
-  EMPLOYEE: 'employee',
-  ADMIN: 'admin',
+  CUSTOMER: 'CUSTOMER',
+  EMPLOYEE: 'EMPLOYEE',
+  EMPLOYER: 'EMPLOYER',
+  ADMIN: 'ADMIN',
+  SUPER_ADMIN: 'SUPER_ADMIN'
 };
 
 // Define which routes are accessible to each role
 export const ROUTE_PERMISSIONS = {
-  '/': [USER_ROLES.GUEST, USER_ROLES.CUSTOMER, USER_ROLES.EMPLOYEE, USER_ROLES.ADMIN],
-  '/menu': [USER_ROLES.GUEST, USER_ROLES.CUSTOMER, USER_ROLES.EMPLOYEE, USER_ROLES.ADMIN],
+  '/': [USER_ROLES.GUEST, USER_ROLES.CUSTOMER, USER_ROLES.EMPLOYEE, USER_ROLES.EMPLOYER, USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN],
+  '/menu': [USER_ROLES.GUEST, USER_ROLES.CUSTOMER, USER_ROLES.EMPLOYEE, USER_ROLES.EMPLOYER, USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN],
   '/login': [USER_ROLES.GUEST],
   '/signup': [USER_ROLES.GUEST],
-  '/contact': [USER_ROLES.GUEST, USER_ROLES.CUSTOMER, USER_ROLES.EMPLOYEE, USER_ROLES.ADMIN],
-  '/feedback': [USER_ROLES.GUEST, USER_ROLES.CUSTOMER, USER_ROLES.EMPLOYEE, USER_ROLES.ADMIN],
-  '/order-placement': [USER_ROLES.CUSTOMER, USER_ROLES.ADMIN],
-  '/orders': [USER_ROLES.CUSTOMER, USER_ROLES.EMPLOYEE, USER_ROLES.ADMIN],
-  '/reservations': [USER_ROLES.CUSTOMER, USER_ROLES.EMPLOYEE, USER_ROLES.ADMIN],
-  '/profile': [USER_ROLES.CUSTOMER, USER_ROLES.EMPLOYEE, USER_ROLES.ADMIN],
-  '/customers': [USER_ROLES.EMPLOYEE, USER_ROLES.ADMIN],
-  '/inventory': [USER_ROLES.EMPLOYEE, USER_ROLES.ADMIN],
-  '/employees': [USER_ROLES.ADMIN],
+  '/contact': [USER_ROLES.GUEST, USER_ROLES.CUSTOMER, USER_ROLES.EMPLOYEE, USER_ROLES.EMPLOYER, USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN],
+  '/feedback': [USER_ROLES.GUEST, USER_ROLES.CUSTOMER, USER_ROLES.EMPLOYEE, USER_ROLES.EMPLOYER, USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN],
+  '/order-placement': [USER_ROLES.CUSTOMER, USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN],
+  '/orders': [USER_ROLES.EMPLOYEE, USER_ROLES.EMPLOYER, USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN],
+  '/reservations': [USER_ROLES.CUSTOMER, USER_ROLES.EMPLOYEE, USER_ROLES.EMPLOYER, USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN],
+  '/profile': [USER_ROLES.CUSTOMER, USER_ROLES.EMPLOYEE, USER_ROLES.EMPLOYER, USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN],
+  '/customers': [USER_ROLES.EMPLOYEE, USER_ROLES.EMPLOYER, USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN],
+  '/inventory': [USER_ROLES.EMPLOYEE, USER_ROLES.EMPLOYER, USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN],
+  '/employees': [USER_ROLES.EMPLOYER, USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN],
+  '/employer-dashboard': [USER_ROLES.EMPLOYER, USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN],
+  '/reports': [USER_ROLES.EMPLOYER, USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN],
+  '/settings': [USER_ROLES.EMPLOYER, USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN],
+  '/super-admin': [USER_ROLES.SUPER_ADMIN],
+  '/super-admin/dashboard': [USER_ROLES.SUPER_ADMIN],
+  '/unauthorized': [USER_ROLES.GUEST, USER_ROLES.CUSTOMER, USER_ROLES.EMPLOYEE, USER_ROLES.EMPLOYER, USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN]
 };
 
 const AuthContext = createContext();
@@ -31,87 +39,119 @@ export const useAuth = () => {
   return useContext(AuthContext);
 };
 
+// Add these functions before the AuthProvider component
+const generateAdminId = () => {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+  let id = '';
+  for (let i = 0; i < 8; i++) {
+    id += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return id;
+};
+
+const validateAdminId = (adminId) => {
+  // Check if adminId exists in localStorage
+  const adminIds = JSON.parse(localStorage.getItem('adminIds') || '[]');
+  return adminIds.some(admin => admin.id === adminId && admin.isActive);
+};
+
 export const AuthProvider = ({ children }) => {
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
-  const [userRole, setUserRole] = useState(USER_ROLES.GUEST);
+  const [userRole, setUserRole] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Check if user is authenticated on component mount
-    const isAuthenticated = localStorage.getItem('isAuthenticated') === 'true';
+    // Check for existing authentication on mount
+    const storedAuth = localStorage.getItem('isAuthenticated');
     const storedEmail = localStorage.getItem('userEmail');
     const storedRole = localStorage.getItem('userRole');
-    
-    if (isAuthenticated && storedEmail) {
-      setCurrentUser({
-        email: storedEmail,
-      });
-      setUserRole(storedRole || USER_ROLES.CUSTOMER); // Default to customer if no role stored
-    } else {
-      setCurrentUser(null);
-      setUserRole(USER_ROLES.GUEST);
+
+    if (storedAuth === 'true' && storedEmail && storedRole) {
+      setIsAuthenticated(true);
+      setCurrentUser({ email: storedEmail });
+      setUserRole(storedRole);
     }
-    
     setIsLoading(false);
   }, []);
 
-  // Login function
-  const login = (email, password, role = USER_ROLES.CUSTOMER) => {
-    // In a real application, you would validate credentials with your API
-    // and retrieve the user's role and other details from the response
-    
-    // For this demo, we'll simulate a successful login
-    localStorage.setItem('isAuthenticated', 'true');
-    localStorage.setItem('userEmail', email);
-    localStorage.setItem('userRole', role);
-    
-    setCurrentUser({
-      email: email,
-    });
-    setUserRole(role);
-    
-    return true;
+  const login = async (email, password, adminId = null) => {
+    try {
+      // Check for super admin credentials
+      if (email === 'sukhisb31@gmail.com' && password === '123456789') {
+        setIsAuthenticated(true);
+        setCurrentUser({ email });
+        setUserRole(USER_ROLES.SUPER_ADMIN);
+        localStorage.setItem('isAuthenticated', 'true');
+        localStorage.setItem('userEmail', email);
+        localStorage.setItem('userRole', USER_ROLES.SUPER_ADMIN);
+        return true;
+      }
+
+      // Check for employer login
+      if (adminId) {
+        const savedEmployerIds = JSON.parse(localStorage.getItem('employerIds') || '[]');
+        const validEmployer = savedEmployerIds.find(
+          emp => emp.id === adminId && 
+          emp.isActive && 
+          new Date(emp.validUntil) > new Date()
+        );
+
+        if (validEmployer) {
+          setIsAuthenticated(true);
+          setCurrentUser({ email });
+          setUserRole(USER_ROLES.EMPLOYER);
+          localStorage.setItem('isAuthenticated', 'true');
+          localStorage.setItem('userEmail', email);
+          localStorage.setItem('userRole', USER_ROLES.EMPLOYER);
+          return true;
+        }
+      }
+
+      // Regular customer login
+      setIsAuthenticated(true);
+      setCurrentUser({ email });
+      setUserRole(USER_ROLES.CUSTOMER);
+      localStorage.setItem('isAuthenticated', 'true');
+      localStorage.setItem('userEmail', email);
+      localStorage.setItem('userRole', USER_ROLES.CUSTOMER);
+      return true;
+    } catch (error) {
+      console.error('Login error:', error);
+      throw error;
+    }
   };
 
-  // Logout function
   const logout = () => {
+    setIsAuthenticated(false);
+    setCurrentUser(null);
+    setUserRole(null);
     localStorage.removeItem('isAuthenticated');
     localStorage.removeItem('userEmail');
     localStorage.removeItem('userRole');
-    
-    setCurrentUser(null);
-    setUserRole(USER_ROLES.GUEST);
   };
 
-  // Check if a user has permission to access a specific route
-  const hasPermission = (path) => {
-    // Extract the base path (e.g., "/orders/123" → "/orders")
-    const basePath = '/' + path.split('/')[1];
-    
-    // Check if the current user role has permission to access this route
-    const allowedRoles = ROUTE_PERMISSIONS[basePath] || [];
-    return allowedRoles.includes(userRole);
+  const hasPermission = (route) => {
+    if (!userRole) return false;
+    return ROUTE_PERMISSIONS[route]?.includes(userRole) || false;
   };
 
-  // Determine if a user is an employee (including admin)
-  const isEmployee = () => {
-    return userRole === USER_ROLES.EMPLOYEE || userRole === USER_ROLES.ADMIN;
-  };
-
-  // Determine if a user is an admin
-  const isAdmin = () => {
-    return userRole === USER_ROLES.ADMIN;
-  };
+  const isEmployee = () => userRole === USER_ROLES.EMPLOYEE;
+  const isEmployer = () => userRole === USER_ROLES.EMPLOYER;
+  const isAdmin = () => userRole === USER_ROLES.ADMIN;
+  const isSuperAdmin = () => userRole === USER_ROLES.SUPER_ADMIN;
 
   const value = {
+    isAuthenticated,
     currentUser,
     userRole,
     login,
     logout,
     hasPermission,
     isEmployee,
+    isEmployer,
     isAdmin,
-    isAuthenticated: !!currentUser,
+    isSuperAdmin
   };
 
   return (

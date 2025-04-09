@@ -27,6 +27,11 @@ import {
   Grow,
   Avatar,
   Tooltip,
+  Slide,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
 } from '@mui/material';
 import MenuIcon from '@mui/icons-material/Menu';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -48,6 +53,15 @@ import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
 import LogoutIcon from '@mui/icons-material/Logout';
 import AccountCircleIcon from '@mui/icons-material/AccountCircle';
 import { useAuth } from '../contexts/AuthContext';
+import AssessmentIcon from '@mui/icons-material/Assessment';
+import SettingsIcon from '@mui/icons-material/Settings';
+import { VpnKey as VpnKeyIcon } from '@mui/icons-material';
+import { AdminPanelSettings as SuperAdminIcon } from '@mui/icons-material';
+import {
+  Menu as MenuIconMui,
+  Login as LoginIcon,
+  PersonAdd as SignupIcon
+} from '@mui/icons-material';
 
 const Navbar = () => {
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -57,12 +71,14 @@ const Navbar = () => {
   const isTablet = useMediaQuery(theme.breakpoints.down('md'));
   const location = useLocation();
   const navigate = useNavigate();
-  const { isAuthenticated, currentUser, userRole, logout, hasPermission } = useAuth();
+  const { isAuthenticated, currentUser, userRole, logout, hasPermission, isEmployer, isAdmin } = useAuth();
   
   // State for managing dropdown menus
   const [openDropdown, setOpenDropdown] = useState(null);
   const [anchorEl, setAnchorEl] = useState(null);
   const [profileMenuAnchor, setProfileMenuAnchor] = useState(null);
+  const [loginMenuAnchor, setLoginMenuAnchor] = useState(null);
+  const [profileDrawerOpen, setProfileDrawerOpen] = useState(false);
 
   // Add scroll effect
   useEffect(() => {
@@ -109,9 +125,12 @@ const Navbar = () => {
       id: 'management',
       title: 'Management',
       items: [
+        { text: 'Employer Dashboard', path: '/employer-dashboard', icon: <BusinessIcon fontSize="small" />, requireEmployer: true },
         { text: 'Customers', path: '/customers', icon: <PeopleIcon fontSize="small" /> },
         { text: 'Inventory', path: '/inventory', icon: <InventoryIcon fontSize="small" /> },
-        { text: 'Employees', path: '/employees', icon: <BadgeIcon fontSize="small" /> },
+        { text: 'Employees', path: '/employees', icon: <BadgeIcon fontSize="small" />, requireEmployer: true },
+        { text: 'Reports', path: '/reports', icon: <AssessmentIcon fontSize="small" />, requireEmployer: true },
+        { text: 'Settings', path: '/settings', icon: <SettingsIcon fontSize="small" />, requireEmployer: true },
       ]
     },
     {
@@ -124,9 +143,14 @@ const Navbar = () => {
     }
   ];
 
-  // Filter menu items based on user permissions
+  // Filter menu items based on user permissions and employer role
   const getFilteredMenuItems = (items) => {
-    return items.filter(item => hasPermission(item.path));
+    return items.filter(item => {
+      if (item.requireEmployer && !isEmployer()) {
+        return false;
+      }
+      return hasPermission(item.path);
+    });
   };
 
   // Filter categories that have at least one accessible item
@@ -168,9 +192,19 @@ const Navbar = () => {
     setProfileMenuAnchor(null);
   };
 
+  // Handle login menu
+  const handleLoginMenu = (event) => {
+    setLoginMenuAnchor(event.currentTarget);
+  };
+
+  const handleLoginMenuClose = () => {
+    setLoginMenuAnchor(null);
+  };
+
   // Handle logout
   const handleLogout = () => {
     handleProfileMenuClose();
+    handleLoginMenuClose();
     if (mobileOpen) handleDrawerToggle();
     logout();
     navigate('/');
@@ -311,7 +345,7 @@ const Navbar = () => {
                 to="/login"
                 variant="outlined"
                 fullWidth
-                onClick={handleDrawerToggle}
+                onClick={handleLoginMenu}
                 sx={{
                   mb: 1.5,
                   borderRadius: '8px',
@@ -324,7 +358,7 @@ const Navbar = () => {
                     borderColor: 'primary.main',
                   },
                 }}
-                startIcon={<PersonIcon />}
+                startIcon={<LoginIcon />}
               >
                 Login
               </Button>
@@ -342,7 +376,7 @@ const Navbar = () => {
                 to="/signup"
                 variant="contained"
                 fullWidth
-                onClick={handleDrawerToggle}
+                onClick={handleLoginMenu}
                 sx={{
                   borderRadius: '8px',
                   py: 1,
@@ -353,7 +387,7 @@ const Navbar = () => {
                     boxShadow: '0 2px 10px rgba(255, 75, 43, 0.3)',
                   },
                 }}
-                startIcon={<BusinessIcon />}
+                startIcon={<SignupIcon />}
               >
                 Sign Up
               </Button>
@@ -361,8 +395,31 @@ const Navbar = () => {
           </>
         )}
       </Box>
+
+      {/* Admin Menu Items */}
+      {isAdmin() && (
+        <>
+          <MenuItem onClick={() => navigate('/admin/manage-employer-ids')}>
+            <ListItemIcon>
+              <VpnKeyIcon fontSize="small" />
+            </ListItemIcon>
+            Manage Employer IDs
+          </MenuItem>
+          <MenuItem onClick={() => navigate('/super-admin')}>
+            <ListItemIcon>
+              <SuperAdminIcon fontSize="small" />
+            </ListItemIcon>
+            Super Admin Panel
+          </MenuItem>
+        </>
+      )}
     </List>
   );
+
+  // Add this function to handle profile drawer
+  const handleProfileDrawerToggle = () => {
+    setProfileDrawerOpen(!profileDrawerOpen);
+  };
 
   return (
     <motion.div
@@ -423,383 +480,196 @@ const Navbar = () => {
           </Typography>
             </Box>
 
-            {/* Mobile Menu Button - Right Side */}
-            {isMobile && (
-              <motion.div
-                whileHover={{ scale: 1.1 }}
-                whileTap={{ scale: 0.95 }}
-              >
-            <IconButton
-              color="inherit"
-              aria-label="open drawer"
-                  edge="end"
-              onClick={handleDrawerToggle}
+            {/* Navigation Menu and Profile - Right Side */}
+            <Box sx={{ 
+              display: 'flex',
+              alignItems: 'center',
+              gap: 1
+            }}>
+              {/* Navigation Buttons */}
+              <Box sx={{ 
+                display: { xs: 'none', md: 'flex' },
+                alignItems: 'center',
+                gap: 1,
+                mr: 2
+              }}>
+                <Button
+                  component={Link}
+                  to="/"
+                  color="inherit"
+                  startIcon={<HomeIcon />}
                   size="small"
-                  sx={{ p: 0.8 }}
+                  sx={{
+                    fontWeight: location.pathname === '/' ? 'bold' : 'normal',
+                    color: location.pathname === '/' ? 'primary.main' : 'inherit',
+                    '&:hover': {
+                      backgroundColor: 'rgba(255, 75, 43, 0.08)',
+                      color: 'primary.main',
+                    },
+                  }}
                 >
-                  <Box sx={{ width: 24, height: 24, position: 'relative' }}>
-                    <motion.span
-                      style={{
-                        position: 'absolute',
-                        top: '25%',
-                        left: 0,
-                        right: 0,
-                        height: 2,
-                        background: mobileOpen ? 'transparent' : theme.palette.primary.main,
-                        borderRadius: 4
-                      }}
-                      animate={mobileOpen ? { rotate: 45, y: 6, background: theme.palette.primary.main } : { rotate: 0 }}
-                      transition={{ duration: 0.3 }}
-                    />
-                    <motion.span
-                      style={{
-                        position: 'absolute',
-                        top: '50%',
-                        left: 0,
-                        right: 0,
-                        height: 2,
-                        background: theme.palette.primary.main,
-                        borderRadius: 4,
-                        marginTop: -1
-                      }}
-                      animate={mobileOpen ? { rotate: -45 } : { rotate: 0 }}
-                      transition={{ duration: 0.3 }}
-                    />
-                    <motion.span
-                      style={{
-                        position: 'absolute',
-                        bottom: '25%',
-                        left: 0,
-                        right: 0,
-                        height: 2,
-                        background: mobileOpen ? 'transparent' : theme.palette.primary.main,
-                        borderRadius: 4
-                      }}
-                      animate={mobileOpen ? { rotate: -45, y: -6, background: theme.palette.primary.main } : { rotate: 0 }}
-                      transition={{ duration: 0.3 }}
-                    />
-                  </Box>
-            </IconButton>
-              </motion.div>
-            )}
+                  Home
+                </Button>
+                <Button
+                  component={Link}
+                  to="/menu"
+              color="inherit"
+                  startIcon={<MenuBookIcon />}
+                  size="small"
+                  sx={{
+                    fontWeight: location.pathname === '/menu' ? 'bold' : 'normal',
+                    color: location.pathname === '/menu' ? 'primary.main' : 'inherit',
+                    '&:hover': {
+                      backgroundColor: 'rgba(255, 75, 43, 0.08)',
+                      color: 'primary.main',
+                    },
+                  }}
+                >
+                  Menu
+                </Button>
+                <Button
+                  component={Link}
+                  to="/order-placement"
+                  color="inherit"
+                  startIcon={<ShoppingCartIcon />}
+                  size="small"
+                  sx={{
+                    fontWeight: location.pathname === '/order-placement' ? 'bold' : 'normal',
+                    color: location.pathname === '/order-placement' ? 'primary.main' : 'inherit',
+                    '&:hover': {
+                      backgroundColor: 'rgba(255, 75, 43, 0.08)',
+                      color: 'primary.main',
+                    },
+                  }}
+                >
+                  Order
+                </Button>
+              </Box>
 
-            {/* Navigation Buttons - Right Side */}
-            {!isMobile && (
-              <Box 
-                sx={{ 
-                  display: 'flex',
-                  justifyContent: 'flex-end',
-                  alignItems: 'center',
-                  height: '100%'
-                }}
-              >
-                {/* Map through categories for dropdown menus - only showing allowed categories */}
-                {filteredMenuCategories.map((category) => (
-                  <Box key={category.id} sx={{ position: 'relative', mx: 0.5 }}>
-                    <motion.div
-                      whileHover={{ scale: 1.05 }}
-                      whileTap={{ scale: 0.95 }}
-                    >
-                      <Button
-                        aria-haspopup="true"
-                        onClick={(e) => handleDropdownToggle(e, category.id)}
-                        color="inherit"
-                        endIcon={openDropdown === category.id ? <KeyboardArrowUpIcon /> : <KeyboardArrowDownIcon />}
-                        sx={{
-                          borderRadius: '4px',
-                          padding: isTablet ? '4px 6px' : '4px 10px',
-                          fontWeight: category.items.some(item => location.pathname === item.path) ? 'bold' : 'normal',
-                          color: category.items.some(item => location.pathname === item.path) ? 'primary.main' : 'inherit',
-                          fontSize: isTablet ? '0.7rem' : '0.8rem',
-                          '&:hover': {
-                            backgroundColor: 'rgba(255, 75, 43, 0.08)',
-                            color: 'primary.main',
-                          },
-                        }}
-                      >
-                        {category.title}
-                      </Button>
-                    </motion.div>
-
-                    {/* Dropdown Menu */}
-                    <Popper
-                      open={openDropdown === category.id}
-                      anchorEl={anchorEl}
-                      placement="bottom-start"
-                      transition
-                      disablePortal
-                      sx={{ zIndex: theme.zIndex.drawer + 2 }}
-                    >
-                      {({ TransitionProps }) => (
-                        <ClickAwayListener onClickAway={handleDropdownClose}>
-                          <Grow {...TransitionProps} style={{ transformOrigin: 'top left' }}>
-                            <Paper
-                              elevation={4}
-                              sx={{
-                                mt: 0.5,
-                                borderRadius: '8px',
-                                overflow: 'hidden',
-                                width: 200,
-                              }}
-                            >
-                              <AnimatePresence>
-                                <motion.div
-                                  key={category.id}
-                                  variants={dropdownVariants}
-                                  initial="hidden"
-                                  animate="visible"
-                                  exit="exit"
-                                >
-                                  <MenuList sx={{ p: 1 }}>
-                                    {category.items.map((item) => (
-                                      <motion.div key={item.text} variants={dropdownItemVariants}>
-                                        <MenuItem
-                                          component={Link}
-                                          to={item.path}
-                                          onClick={handleDropdownClose}
-                                          selected={location.pathname === item.path}
-                                          sx={{
-                                            borderRadius: '4px',
-                                            py: 1,
-                                            mb: 0.5,
-                                            color: location.pathname === item.path ? 'primary.main' : 'inherit',
-                                            fontWeight: location.pathname === item.path ? 'bold' : 'normal',
-                                            '&:hover': {
-                                              backgroundColor: 'rgba(255, 75, 43, 0.08)',
-                                            },
-                                          }}
-                                        >
-                                          <ListItemIcon
-                                            sx={{
-                                              minWidth: '30px',
-                                              color: location.pathname === item.path ? 'primary.main' : 'inherit',
-                                            }}
-                                          >
-                                            {item.icon}
-                                          </ListItemIcon>
-                                          <ListItemText primary={item.text} />
-                                        </MenuItem>
-                                      </motion.div>
-                                    ))}
-                                  </MenuList>
-                                </motion.div>
-                              </AnimatePresence>
-                            </Paper>
-                          </Grow>
-                        </ClickAwayListener>
-                      )}
-                    </Popper>
-                  </Box>
-                ))}
-                
-                <Divider orientation="vertical" flexItem sx={{ mx: 1, height: '60%' }} />
-                
-                {/* Login/Signup Buttons or User Profile */}
-                {isAuthenticated ? (
-                  <Box>
-                    <Tooltip title={currentUser?.email || 'User Profile'}>
-                      <IconButton 
-                        onClick={handleProfileMenuOpen}
-                        sx={{ 
-                          ml: 1,
-                          border: '1px solid',
-                          borderColor: 'divider'
-                        }}
-                      >
-                        <Avatar 
-                          sx={{ 
-                            width: 32, 
-                            height: 32, 
-                            backgroundColor: 'primary.main',
-                            fontSize: '0.9rem'
-                          }}
-                        >
-                          {currentUser?.email?.charAt(0).toUpperCase() || 'U'}
-                        </Avatar>
-                      </IconButton>
-                    </Tooltip>
-                    
-                    <Menu
-                      anchorEl={profileMenuAnchor}
-                      open={Boolean(profileMenuAnchor)}
-                      onClose={handleProfileMenuClose}
-                      PaperProps={{
-                        elevation: 3,
-                        sx: { 
-                          mt: 1.5,
-                          minWidth: 200,
-                          borderRadius: 2,
-                          overflow: 'visible',
-                          '&:before': {
-                            content: '""',
-                            display: 'block',
-                            position: 'absolute',
-                            top: 0,
-                            right: 14,
-                            width: 10,
-                            height: 10,
-                            bgcolor: 'background.paper',
-                            transform: 'translateY(-50%) rotate(45deg)',
-                            zIndex: 0,
-                          },
-                        }
-                      }}
-                      transformOrigin={{ horizontal: 'right', vertical: 'top' }}
-                      anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
-                    >
-                      <Box sx={{ px: 2, py: 1.5 }}>
-                        <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>
-                          {currentUser?.email}
-                        </Typography>
-                        <Typography 
-                          variant="caption" 
-                          sx={{ 
-                            color: 'text.secondary',
-                            display: 'block',
-                            mb: 1,
-                            textTransform: 'capitalize'
-                          }}
-                        >
-                          {userRole}
-                        </Typography>
-                      </Box>
-                      <Divider />
-                      <MenuItem 
-                        onClick={handleProfileMenuClose}
-                        component={Link}
-                        to="/profile"
-                        sx={{ py: 1.5 }}
-                      >
-                        <ListItemIcon>
-                          <AccountCircleIcon fontSize="small" />
-                        </ListItemIcon>
-                        <ListItemText>My Profile</ListItemText>
-                      </MenuItem>
-                      <Divider />
-                      <MenuItem 
-                        onClick={handleLogout}
-                        sx={{ 
-                          py: 1.5,
-                          color: 'error.main'
-                        }}
-                      >
-                        <ListItemIcon sx={{ color: 'error.main' }}>
-                          <LogoutIcon fontSize="small" />
-                        </ListItemIcon>
-                        <ListItemText>Logout</ListItemText>
-                      </MenuItem>
-                    </Menu>
-                  </Box>
-                ) : (
-                  <>
-                    <motion.div
-                      whileHover={{ scale: 1.05 }}
-                      whileTap={{ scale: 0.95 }}
-                    >
-                      <Button
-                        component={Link}
-                        to="/login"
-                        variant="outlined"
-                        size="small"
-                        sx={{
-                          borderRadius: '20px',
-                          borderColor: 'primary.main',
-                          color: 'primary.main',
-                          ml: 1,
-                          fontSize: '0.75rem',
-                          '&:hover': {
-                            backgroundColor: 'rgba(255, 75, 43, 0.08)',
-                            borderColor: 'primary.main',
-                          },
-                        }}
-                      >
-                        Login
-                      </Button>
-                    </motion.div>
-                    
-                    <motion.div
-                      whileHover={{ scale: 1.05 }}
-                      whileTap={{ scale: 0.95 }}
-                    >
-                      <Button
-                        component={Link}
-                        to="/signup"
-                        variant="contained"
-                        size="small"
-                        sx={{
-                          borderRadius: '20px',
-                          ml: 1,
-                          fontSize: '0.75rem',
-                          background: 'linear-gradient(45deg, #FF4B2B 30%, #FF8E53 90%)',
-                          '&:hover': {
-                            background: 'linear-gradient(45deg, #FF4B2B 50%, #FF8E53 100%)',
-                            boxShadow: '0 2px 10px rgba(255, 75, 43, 0.3)',
-                          },
-                        }}
-                      >
-                        Sign Up
-                      </Button>
-                    </motion.div>
-                  </>
-                )}
+              {/* Profile Icon */}
+              <Tooltip title="Profile">
+                <IconButton
+                  onClick={handleProfileDrawerToggle}
+                  sx={{
+                    border: '1px solid',
+                    borderColor: 'divider',
+                    '&:hover': {
+                      backgroundColor: 'rgba(255, 75, 43, 0.08)',
+                    }
+                  }}
+                >
+                  <Avatar 
+                    sx={{ 
+                      width: 32, 
+                      height: 32, 
+                      backgroundColor: 'primary.main',
+                      fontSize: '0.9rem'
+                    }}
+                  >
+                    {isAuthenticated ? currentUser?.email?.charAt(0).toUpperCase() : 'U'}
+                  </Avatar>
+                </IconButton>
+              </Tooltip>
             </Box>
-          )}
         </Toolbar>
         </Container>
       </AppBar>
 
-      {/* Mobile Drawer */}
+      {/* Profile Drawer */}
       <Drawer
-        variant="temporary"
         anchor="right"
-        open={mobileOpen}
-        onClose={handleDrawerToggle}
-        ModalProps={{
-          keepMounted: true,
-        }}
-        sx={{
-          '& .MuiDrawer-paper': { 
-            width: 250,
-            boxSizing: 'border-box',
+        open={profileDrawerOpen}
+        onClose={handleProfileDrawerToggle}
+        PaperProps={{
+          sx: {
+            width: 300,
+            backgroundColor: 'background.paper',
             boxShadow: '0 8px 10px -5px rgba(0,0,0,0.2)',
-          },
-        }}
-        SlideProps={{
-          timeout: 400,
-          easing: 'cubic-bezier(0.25, 0.8, 0.25, 1)'
+          }
         }}
       >
-        <Box sx={{ 
-          p: 1.5, 
-          display: 'flex', 
-          flexDirection: 'column',
-          alignItems: 'center',
-          borderBottom: '1px solid #e0e0e0'
-        }}>
-          <motion.div 
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.4, ease: "easeOut" }}
-          >
-            <Box sx={{ display: 'flex', alignItems: 'center' }}>
-              <RestaurantIcon sx={{ mr: 0.5, color: 'primary.main', fontSize: '1.2rem' }} />
-              <Typography variant="subtitle1" sx={{ color: 'primary.main', fontWeight: 'bold', fontSize: '1.1rem' }}>
-                Restaurant Pro
-              </Typography>
-            </Box>
-          </motion.div>
-          <Divider sx={{ width: '100%', my: 1.5 }} />
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.1, duration: 0.3 }}
-          >
-            <Typography variant="body2" sx={{ fontWeight: 500, fontSize: '0.85rem' }}>
-              Current Page: <span style={{ color: theme.palette.primary.main }}>{getPageTitle()}</span>
-            </Typography>
-          </motion.div>
+        <Box sx={{ p: 2, borderBottom: '1px solid', borderColor: 'divider' }}>
+          <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
+            Account
+          </Typography>
         </Box>
-        {drawer}
+
+        <List sx={{ p: 2 }}>
+          {isAuthenticated ? (
+            <>
+              <ListItem>
+                <ListItemIcon>
+                  <AccountCircleIcon color="primary" />
+                </ListItemIcon>
+                <ListItemText 
+                  primary={currentUser?.email}
+                  secondary={userRole}
+                />
+              </ListItem>
+              <Divider sx={{ my: 1 }} />
+              <ListItem 
+                button 
+                component={Link} 
+                to="/profile"
+                onClick={handleProfileDrawerToggle}
+              >
+                <ListItemIcon>
+                  <PersonIcon color="primary" />
+                </ListItemIcon>
+                <ListItemText primary="My Profile" />
+              </ListItem>
+              <ListItem 
+                button 
+                onClick={() => {
+                  handleProfileDrawerToggle();
+                  handleLogout();
+                }}
+              >
+                <ListItemIcon>
+                  <LogoutIcon color="error" />
+                </ListItemIcon>
+                <ListItemText primary="Logout" sx={{ color: 'error.main' }} />
+              </ListItem>
+            </>
+          ) : (
+            <>
+              <ListItem 
+                button 
+                component={Link} 
+                to="/login"
+                onClick={handleProfileDrawerToggle}
+              >
+                <ListItemIcon>
+                  <LoginIcon color="primary" />
+                </ListItemIcon>
+                <ListItemText primary="Login" />
+              </ListItem>
+              <ListItem 
+                button 
+                component={Link} 
+                to="/signup"
+                onClick={handleProfileDrawerToggle}
+              >
+                <ListItemIcon>
+                  <SignupIcon color="primary" />
+                </ListItemIcon>
+                <ListItemText primary="Sign Up" />
+              </ListItem>
+              <Divider sx={{ my: 1 }} />
+              <ListItem 
+                button 
+                component={Link} 
+                to="/super-admin/login"
+                onClick={handleProfileDrawerToggle}
+              >
+                <ListItemIcon>
+                  <SuperAdminIcon color="primary" />
+                </ListItemIcon>
+                <ListItemText primary="Super Admin Login" />
+              </ListItem>
+            </>
+          )}
+        </List>
       </Drawer>
     </motion.div>
   );

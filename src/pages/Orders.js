@@ -37,6 +37,7 @@ import { useNavigate } from 'react-router-dom';
 import RemoveIcon from '@mui/icons-material/Remove';
 import PaymentIcon from '@mui/icons-material/Payment';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import { useAuth } from '../contexts/AuthContext';
 
 const StyledCard = styled(motion(Card))`
   height: 100%;
@@ -56,6 +57,7 @@ const isAuthenticated = () => {
 
 const Orders = () => {
   const navigate = useNavigate();
+  const { userRole, isEmployee, isEmployer } = useAuth();
   const [orders, setOrders] = useState([
     {
       id: 1,
@@ -112,25 +114,22 @@ const Orders = () => {
   const paymentMethods = ['Credit Card', 'Cash', 'Mobile Payment'];
 
   useEffect(() => {
-    // Check if user is authenticated when component mounts
-    if (!isAuthenticated()) {
-      // Store the redirect path
-      localStorage.setItem('redirectAfterLogin', '/orders');
-      // Show message and redirect to login
+    // Check if user is authenticated and has appropriate role
+    if (!isEmployee() && !isEmployer()) {
       setSnackbar({
         open: true,
-        message: 'Please login to place an order',
-        severity: 'info',
+        message: 'Access denied. This page is for employees and employers only.',
+        severity: 'error',
       });
       
-      // Redirect after a short delay so user can read the message
+      // Redirect after a short delay
       const timer = setTimeout(() => {
-        navigate('/login');
+        navigate('/');
       }, 2000);
       
       return () => clearTimeout(timer);
     }
-  }, [navigate]);
+  }, [navigate, isEmployee, isEmployer]);
 
   const handleOpenDialog = (order = null) => {
     if (order) {
@@ -253,23 +252,19 @@ const Orders = () => {
   const stats = calculateStats();
 
   return (
-    <Container maxWidth="lg" className="page-container" sx={{ pt: 3, pb: 4 }}>
-      <AnimatedContainer
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
+    <Container maxWidth="lg" sx={{ pt: 10, pb: 8 }}>
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
       >
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 4 }}>
-          <Typography variant="h4" component="h1">
+        <Box sx={{ mb: 4 }}>
+          <Typography variant="h4" gutterBottom>
             Order Management
           </Typography>
-          <Button
-            variant="contained"
-            startIcon={<AddIcon />}
-            onClick={() => handleOpenDialog()}
-          >
-            Add Order
-          </Button>
+          <Typography variant="subtitle1" color="text.secondary">
+            Manage and track all restaurant orders
+          </Typography>
         </Box>
 
         <Grid container spacing={3} sx={{ mb: 4 }}>
@@ -495,7 +490,7 @@ const Orders = () => {
             {snackbar.message}
           </Alert>
         </Snackbar>
-      </AnimatedContainer>
+      </motion.div>
     </Container>
   );
 };

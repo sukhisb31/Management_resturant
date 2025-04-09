@@ -431,7 +431,7 @@ const Home = () => {
 
           <Box sx={{ textAlign: 'center' }}>
             <Typography variant="body2" sx={{ opacity: 0.8 }}>
-              {/* © {new Date().getFullYear()} Restaurant Pro. All rights reserved. */}
+              © {new Date().getFullYear()} Restaurant Pro. All rights reserved.
             </Typography>
           </Box>
         </Container>
@@ -440,4 +440,4 @@ const Home = () => {
   );
 };
 
-export default Home; 
+export default Home;
